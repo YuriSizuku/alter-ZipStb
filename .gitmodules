@@ -1,0 +1,3 @@
+[submodule "depend/zip"]
+	path = depend/zip
+	url = https://github.com/kuba--/zip.git
