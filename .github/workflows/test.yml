@@ -7,7 +7,7 @@ permissions:
   contents: write
   
 jobs:
-  test_winexe_libzip:
+  test_win_libzip:
     runs-on: windows-2019
     steps:
     - name: pull and init
@@ -18,4 +18,19 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
     
     - name: test target
-      run: script/test_libzip.bat
+      run: script/test_win_msvc.bat
+
+  test_linux_libzip:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: pull and init
+      uses: actions/checkout@v3
+      with: {submodules: true}
+    
+    - name: prepare enviroment
+      run: |
+        sudo apt-get -y install gcc-multilib
+        sudo apt-get -y install crossbuild-essential-i386
+
+    - name: test target
+      run: script/test_linux_gcc.sh

@@ -1,6 +1,6 @@
 """
 generate stb_zip.h file
-    v0.1, developed by devseed
+    v0.1.1, developed by devseed
 """
 
 info = \
@@ -89,6 +89,9 @@ def patch_zip(inpath) -> str:
 
 def patch_minniz(inpath) -> str:
     lines = read_lines(inpath)
+    lines = replace_lines(lines, {
+        "extern MINIZ_EXPORT": "MINIZ_EXPORT",
+    })
     return "".join(lines)
 
 def make_zipstb(repodir, info, version) -> str:
@@ -103,19 +106,28 @@ def make_zipstb(repodir, info, version) -> str:
 {zipdecl_ccode}
 
 #ifdef ZIP_IMPLEMENTATION 
-#endif // ZIP_IMPLEMENTATION
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||              \
+    defined(__MINGW32__)
 #include <direct.h>
+#endif
 {miniz_ccode}
 {zip_ccode}
+#endif // ZIP_IMPLEMENTATION
 #endif // _ZIP_H" 
 """
 
 if __name__ == "__main__":
     srcdir = sys.argv[1] if len(sys.argv) > 1 else "depend/zip" 
     outpath = sys.argv[2] if len(sys.argv) > 2 else "build/stb_zip.h"
-    version = sys.argv[3] if len(sys.argv) > 3 else "320"
+    version = sys.argv[3] if len(sys.argv) > 3 else "330"
     ccode = make_zipstb(srcdir, info, version)
     with open(outpath, "w", encoding="utf-8") as fp:
         fp.write(ccode)
     with open(f"{os.path.splitext(outpath)[0]}_v{version}.h", "w", encoding="utf-8") as fp:
         fp.write(ccode)
+
+"""
+history:
+v0.1, initial version
+v0.1.1, support linux
+"""

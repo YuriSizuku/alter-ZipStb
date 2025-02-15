@@ -3,7 +3,7 @@
 
 #ifndef _ZIP_H
 #define _ZIP_H
-#define ZIP_VERSION 320 
+#define ZIP_VERSION 330 
 
 #if defined(_MSC_VER) || defined(__TINYC__)
 #ifndef EXPORT
@@ -126,6 +126,8 @@ typedef long ssize_t; /* byte count or error */
 #define ZIP_ERINIT -30      // cannot initialize reader
 #define ZIP_EWINIT -31      // cannot initialize writer
 #define ZIP_EWRINIT -32     // cannot initialize writer from reader
+#define ZIP_EINVAL -33      // invalid argument
+#define ZIP_ENORITER -34    // cannot initialize reader iterator
 
 /**
  * Looks up the error message string corresponding to an error number.
@@ -404,6 +406,27 @@ ZIP_API ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf,
                                                 size_t bufsize);
 
 /**
+ * Extracts the part of the current zip entry into a memory buffer using no
+ * memory allocation for the buffer.
+ *
+ * @param zip zip archive handler.
+ * @param offset the offset of the entry (in bytes).
+ * @param size requested number of bytes (in bytes).
+ * @param buf preallocated output buffer.
+ *
+ * @note the iterator api uses an allocation to create its state
+ * @note each call will iterate from the start of the entry
+ *
+ * @return the return code - the number of bytes actually read on success.
+ *         Otherwise a negative number (< 0) on error (e.g. offset is too
+ * large).
+ */
+ZIP_API ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip,
+                                                          size_t offset,
+                                                          size_t size,
+                                                          void *buf);
+
+/**
  * Extracts the current zip entry into output file.
  *
  * @param zip zip archive handler.
@@ -625,8 +648,9 @@ ZIP_API int zip_extract(const char *zipname, const char *dir,
 
 
 #ifdef ZIP_IMPLEMENTATION 
-#endif // ZIP_IMPLEMENTATION
+#if defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER) ||                  defined(__MINGW32__)
 #include <direct.h>
+#endif
 #ifndef MINIZ_EXPORT
 #define MINIZ_EXPORT
 #endif
@@ -1346,10 +1370,10 @@ typedef struct mz_dummy_time_t_tag {
 extern "C" {
 #endif
 
-extern MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items,
+MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items,
                                                size_t size);
-extern MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address);
-extern MINIZ_EXPORT void *miniz_def_realloc_func(void *opaque, void *address,
+MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address);
+MINIZ_EXPORT void *miniz_def_realloc_func(void *opaque, void *address,
                                                  size_t items, size_t size);
 
 #define MZ_UINT16_MAX (0xFFFFU)
@@ -5248,6 +5272,12 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r,
             }
             bit_buf >>= code_len;
             num_bits -= code_len;
+
+            /* assert(sym2 != 0 && counter != 0); */
+            if (sym2 == 0 && counter == 0)
+            {
+                TINFL_CR_RETURN_FOREVER(40, TINFL_STATUS_FAILED);
+            }
 
             pOut_buf_cur[0] = (mz_uint8)counter;
             if (sym2 & 256) {
@@ -10924,7 +10954,7 @@ struct zip_entry_mark_t {
   size_t lf_length;
 };
 
-static const char *const zip_errlist[33] = {
+static const char *const zip_errlist[35] = {
     NULL,
     "not initialized\0",
     "invalid entry name\0",
@@ -10958,6 +10988,8 @@ static const char *const zip_errlist[33] = {
     "cannot initialize reader\0",
     "cannot initialize writer\0",
     "cannot initialize writer from reader\0",
+    "invalid argument\0",
+    "cannot initialize reader iterator\0",
 };
 
 const char *zip_strerror(int errnum) {
@@ -12464,6 +12496,75 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   return (ssize_t)zip->entry.uncomp_size;
 }
 
+ssize_t zip_entry_noallocreadwithoffset(struct zip_t *zip, size_t offset,
+                                        size_t size, void *buf) {
+  mz_zip_archive *pzip = NULL;
+
+  if (!zip) {
+    // zip_t handler is not initialized
+    return (ssize_t)ZIP_ENOINIT;
+  }
+
+  if (offset >= (size_t)zip->entry.uncomp_size) {
+    return (ssize_t)ZIP_EINVAL;
+  }
+
+  if ((offset + size) > (size_t)zip->entry.uncomp_size) {
+    size = (ssize_t)zip->entry.uncomp_size - offset;
+  }
+
+  pzip = &(zip->archive);
+  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING ||
+      zip->entry.index < (ssize_t)0) {
+    // the entry is not found or we do not have read access
+    return (ssize_t)ZIP_ENOENT;
+  }
+
+  mz_zip_reader_extract_iter_state *iter =
+      mz_zip_reader_extract_iter_new(pzip, (mz_uint)zip->entry.index, 0);
+  if (!iter) {
+    return (ssize_t)ZIP_ENORITER;
+  }
+
+  mz_uint8 *writebuf = (mz_uint8 *)buf;
+  size_t file_offset = 0;
+  size_t write_cursor = 0;
+  size_t to_read = size;
+
+  // iterate until the requested offset is in range
+  while (file_offset < zip->entry.uncomp_size && to_read > 0) {
+    size_t nread = mz_zip_reader_extract_iter_read(
+        iter, (void *)&writebuf[write_cursor], to_read);
+
+    if (nread == 0)
+      break;
+
+    if (offset < (file_offset + nread)) {
+      size_t read_cursor = offset - file_offset;
+      MZ_ASSERT(read_cursor < size);
+      size_t read_size = nread - read_cursor;
+
+      if (to_read < read_size)
+        read_size = to_read;
+      MZ_ASSERT(read_size <= size);
+
+      // If it's an unaligned read (i.e. the first one)
+      if (read_cursor != 0) {
+        memmove(&writebuf[write_cursor], &writebuf[read_cursor], read_size);
+      }
+
+      write_cursor += read_size;
+      offset += read_size;
+      to_read -= read_size;
+    }
+
+    file_offset += nread;
+  }
+
+  mz_zip_reader_extract_iter_free(iter);
+  return (ssize_t)write_cursor;
+}
+
 int zip_entry_fread(struct zip_t *zip, const char *filename) {
   mz_zip_archive *pzip = NULL;
   mz_uint idx;
@@ -12910,4 +13011,5 @@ int zip_extract(const char *zipname, const char *dir,
   return zip_archive_extract(&zip_archive, dir, on_extract, arg);
 }
 
+#endif // ZIP_IMPLEMENTATION
 #endif // _ZIP_H" 

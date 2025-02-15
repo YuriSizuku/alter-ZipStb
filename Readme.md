@@ -36,7 +36,13 @@ python script/build_stb_zip.py
 build for debug
 
 ```sh
-make prepare StbZip
+make prepare stbzip # build source
+
+# build windows
 make libzip libzip_test CC=i686-w64-mingw32-gcc BUILD_TYPE=32d
 make libzip libzip_test CC=x86_64-w64-mingw32-gcc BUILD_TYPE=64d
+
+# build linux
+make libzip libzip_test CC=i686-linux-gnu-gcc BUILD_TYPE=32d
+make libzip libzip_test CC=x86_64-linux-gnu-gcc BUILD_TYPE=64d
 ```

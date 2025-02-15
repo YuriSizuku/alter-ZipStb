@@ -1,12 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
-#if defined (_MSC_VER) 
-#define NOINLINE __declspec(noinline)
-#define MINHOOK_IMPLEMENTATION
-#else
-#define NOINLINE __attribute__((noinline))
-#endif
 #include "stb_zip.h"
 
 int main(int argc, char *argv[])
