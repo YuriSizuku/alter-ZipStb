@@ -72,7 +72,7 @@ $(BUILD_DIR)/libzip_test$(BUILD_TYPE)${EXEEXT}: src/libzip_test.c $(BUILD_DIR)/l
 
 stbzip: script/build_stbzip.py
 	python $< depend/zip $(BUILD_DIR)/stb_zip.h
-	cp -f $(BUILD_DIR)/stb_zip.h src/stb_zip.h
+	mv -f $(BUILD_DIR)/stb_zip.h src/stb_zip.h
 
 libzip: $(BUILD_DIR)/libzip$(BUILD_TYPE)${DLLEXT}
 

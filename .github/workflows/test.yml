@@ -1,4 +1,4 @@
-name: test_wintools
+name: test_tools
 on:
   push: {tags:  ['v*'] } # Push events to matching v*, i.e. v1.0, v20.15.10
   pull_request: 
@@ -21,7 +21,7 @@ jobs:
       run: script/test_win_msvc.bat
 
   test_linux_libzip:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: pull and init
       uses: actions/checkout@v3
@@ -29,6 +29,7 @@ jobs:
     
     - name: prepare enviroment
       run: |
+        sudo apt-get -y update
         sudo apt-get -y install gcc-multilib
         sudo apt-get -y install crossbuild-essential-i386
 

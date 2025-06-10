@@ -42,9 +42,8 @@ int main(int argc, char *argv[])
     assert(outbuf);
     assert(outsize == strlen(inbuf) + 1);
     assert(strcmp(inbuf, outbuf)==0);
-    zip_entry_close(zip);
+    zip_entry_close(zip); // this will free outbuf, no need to free again
     zip_stream_close(zip);
-    free(outbuf);
     free(zipbuf);
 
     return 0;

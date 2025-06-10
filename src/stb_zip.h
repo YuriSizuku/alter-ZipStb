@@ -3,7 +3,7 @@
 
 #ifndef _ZIP_H
 #define _ZIP_H
-#define ZIP_VERSION 330 
+#define ZIP_VERSION "0.3.3"
 
 #if defined(_MSC_VER) || defined(__TINYC__)
 #ifndef EXPORT

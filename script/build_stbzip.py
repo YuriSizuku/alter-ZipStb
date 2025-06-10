@@ -101,7 +101,7 @@ def make_zipstb(repodir, info, version) -> str:
     return f"""{info}
 #ifndef _ZIP_H
 #define _ZIP_H
-#define ZIP_VERSION {version} 
+#define ZIP_VERSION "{version}"
 {stbdecl_ccode} 
 {zipdecl_ccode}
 
@@ -119,11 +119,11 @@ def make_zipstb(repodir, info, version) -> str:
 if __name__ == "__main__":
     srcdir = sys.argv[1] if len(sys.argv) > 1 else "depend/zip" 
     outpath = sys.argv[2] if len(sys.argv) > 2 else "build/stb_zip.h"
-    version = sys.argv[3] if len(sys.argv) > 3 else "330"
+    version = sys.argv[3] if len(sys.argv) > 3 else "0.3.3"
     ccode = make_zipstb(srcdir, info, version)
     with open(outpath, "w", encoding="utf-8") as fp:
         fp.write(ccode)
-    with open(f"{os.path.splitext(outpath)[0]}_v{version}.h", "w", encoding="utf-8") as fp:
+    with open(f"{os.path.splitext(outpath)[0]}_v{version.replace('.', '_')}.h", "w", encoding="utf-8") as fp:
         fp.write(ccode)
 
 """
