@@ -1,9 +1,16 @@
-# build example, tested in linux 10.0.0-3, gcc 12, wine-9.0
+# tested in linux 10.0.0-3, gcc 12, wine-9.0
+
 # make stbzip
 # make libzip libzip_test CC=i686-w64-mingw32-gcc BUILD_TYPE=32d
 # make libzip libzip_test CC=x86_64-w64-mingw32-gcc BUILD_TYPE=64d
 # make libzip libzip_test CC=i686-linux-gnu-gcc BUILD_TYPE=32d
 # make libzip libzip_test CC=x86_64-linux-gnu-gcc BUILD_TYPE=64d
+
+# test libzip
+# wine build/libzip_test32d.exe
+# wine build/libzip_test64d.exe
+# LD_LIBRARY_PATH=build build/libzip_test64d
+# LD_LIBRARY_PATH=build build/libzip_test32d
 
 # general config
 CC:=clang # clang (llvm-mingw), gcc (mingw-w64), tcc (x86 stdcall name has problem)
