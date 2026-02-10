@@ -90,6 +90,7 @@ def patch_zip(inpath) -> str:
 def patch_minniz(inpath) -> str:
     lines = read_lines(inpath)
     lines = replace_lines(lines, {
+        "#define MINIZ_EXPORT": "#define MINIZ_EXPORT static", 
         "extern MINIZ_EXPORT": "MINIZ_EXPORT",
     })
     return "".join(lines)
@@ -121,9 +122,9 @@ if __name__ == "__main__":
     outpath = sys.argv[2] if len(sys.argv) > 2 else "build/stb_zip.h"
     version = sys.argv[3] if len(sys.argv) > 3 else "0.3.3"
     ccode = make_zipstb(srcdir, info, version)
-    with open(outpath, "w", encoding="utf-8") as fp:
+    with open(outpath, "w", encoding="utf-8", newline="\n") as fp:
         fp.write(ccode)
-    with open(f"{os.path.splitext(outpath)[0]}_v{version.replace('.', '_')}.h", "w", encoding="utf-8") as fp:
+    with open(f"{os.path.splitext(outpath)[0]}_v{version.replace('.', '_')}.h", "w", encoding="utf-8", newline="\n") as fp:
         fp.write(ccode)
 
 """

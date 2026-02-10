@@ -652,7 +652,7 @@ ZIP_API int zip_extract(const char *zipname, const char *dir,
 #include <direct.h>
 #endif
 #ifndef MINIZ_EXPORT
-#define MINIZ_EXPORT
+#define MINIZ_EXPORT static
 #endif
 /* miniz.c 3.0.2 - public domain deflate/inflate, zlib-subset, ZIP
    reading/writing/appending, PNG writing See "unlicense" statement at the end
